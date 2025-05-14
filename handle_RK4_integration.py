@@ -11,7 +11,7 @@ def RK4_step(f, X, dt):
     return X_next
 
 
-def num_integration(rhs, sol0, T, step_size):
+def num_integration(rhs, sol0, T, step_size=0.01):
     sol = sol0
     step_n = int(T / step_size)
     arr_sol = np.array([[0.] * 4] * step_n)

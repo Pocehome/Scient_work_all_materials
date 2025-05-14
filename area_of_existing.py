@@ -1,4 +1,4 @@
-from find_reduc_rot import (np, xy_dyn, get_xy_from_vec_i, find_initial_vec, stability_determination)
+from find_reduc_rot import (np, xy_dyn, get_xy_from_vec_i, find_initial_vec, full_syst_stability_determination)
 import json
 
 
@@ -28,10 +28,10 @@ def stretching_by_alpha2(epsilon2, init_alpha2, vec_in_init_alpha2, alpha2_step,
             # calculate functions
             rhs = xy_dyn(N, mu, epsilon1, alpha1, epsilon2, alpha2)
             calc_xy = get_xy_from_vec_i(N, mu, epsilon1, alpha1, epsilon2, alpha2)
-            f_stab_det = stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
+            f_stab_det = full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
             
             # Newton's method
-            init_vec, find_flag, is_stable = find_initial_vec(init_vec, rhs, calc_xy, f_stab_det)
+            init_vec, find_flag, is_stable, eigv = find_initial_vec(init_vec, rhs, calc_xy, f_stab_det)
             
             if not find_flag:
                 break
@@ -57,10 +57,10 @@ def stretching_by_alpha2(epsilon2, init_alpha2, vec_in_init_alpha2, alpha2_step,
             # calculate functions
             rhs = xy_dyn(N, mu, epsilon1, alpha1, epsilon2, alpha2)
             calc_xy = get_xy_from_vec_i(N, mu, epsilon1, alpha1, epsilon2, alpha2)
-            f_stab_det = stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
+            f_stab_det = full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
             
             # Newton's method
-            init_vec, find_flag, is_stable = find_initial_vec(init_vec, rhs, calc_xy, f_stab_det)
+            init_vec, find_flag, is_stable, eigv = find_initial_vec(init_vec, rhs, calc_xy, f_stab_det)
             
             if not find_flag:
                 break
@@ -193,9 +193,9 @@ def stretching_by_epsilon2_alpha2(init_epsilon2, alpha2, vec_in_init_epsilon2, e
         return area_existence
 
 
-def write_to_file(file_name, N, mu, epsilon1, alpha1, area_existence):
+def write_to_file(file_name, N, mu, epsilon1, alpha1, area_step_n, area_existence):
     with open(file_name, 'w') as fw:
-        json.dump([[N, mu, epsilon1, alpha1], area_existence], fw)
+        json.dump([[N, mu, epsilon1, alpha1, area_step_n], area_existence], fw)
 
 
 if __name__ == "__main__":
@@ -240,4 +240,4 @@ if __name__ == "__main__":
     
     except:
         # writing to file        
-        write_to_file(file_name, N, mu, epsilon1, alpha1, area_existence)
+        write_to_file(file_name, N, mu, epsilon1, alpha1, area_step_n, area_existence)

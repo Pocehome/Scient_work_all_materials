@@ -37,15 +37,16 @@ def xy_dyn(N, mu, epsilon1, alpha1, epsilon2, alpha2):
 
 
 # !!!
-def num_integration(rhs, sol0, T, step_size):
+def num_integration(rhs, sol0, T):
     sol = solve_ivp(rhs, [0, T], sol0, max_step=0.01)
-    arr_sol, arr_t = np.transpose(sol.y), sol.t
+    # arr_sol, arr_t = np.transpose(sol.y), sol.t
+    arr_sol, arr_t = sol.y, sol.t
         
     return arr_sol, arr_t
 # !!!
 
 
-def draw_graph(X, Y, limits, x_name='', y_name='', 
+def draw_graph(X, Y, limits, x_name='', y_name='', visible=1, 
                colors=[], legend=[], xs=[], ys=[], grid=True):
     
     x_lims, y_lims = limits
@@ -54,17 +55,17 @@ def draw_graph(X, Y, limits, x_name='', y_name='',
     
     if len(X) == 1:
         for i in range(len(Y)):
-            color = 'blue'
-            if colors:
-                color = colors[i]
-            plt.plot(X[0], Y[i], color)
-            
+            try:
+                plt.plot(X[0], Y[i], colors[i], alpha=visible)
+            except:
+                plt.plot(X[0], Y[i], alpha=visible)
+                
     elif len(X) == len(Y):
         for i in range(len(X)):
-            color = 'blue'
-            if colors:
-                color = colors[i]
-            plt.plot(X[i], Y[i], color)
+            try:
+                plt.plot(X[i], Y[i], colors[i], alpha=visible)
+            except:
+                plt.plot(X[i], Y[i], alpha=visible)
     
     for x in xs:
         plt.axvline(x=x, color='black', linestyle='--')
@@ -86,29 +87,34 @@ if __name__ == '__main__':
     epsilon1 = 1.0
     alpha1 = 1.7
     
-    alpha2 = -np.pi
-    epsilon2 = 0.1
-    initial_vec = np.array([0., -0.0751, 2.2966, 0.0833])
+    # alpha2 = -np.pi
+    # epsilon2 = 0.1
+    # initial_vec = np.array([0., -0.0751, 2.2966, 0.0833])
+    # T = 10.
+    
+    epsilon2 = 0.08
+    alpha2 = -2.0
+    initial_vec = np.array([0., -0.05921021, 2.64676814, 0.14678535])
+    # T = 41.02969191
+    T = 100.
     
     # numerical integration
-    step_size = 0.01
-    T = 1000.
     
     rhs = xy_dyn(N, mu, epsilon1, alpha1, epsilon2, alpha2)
     
-    arr_sol, arr_t = num_integration(rhs, initial_vec, T, step_size)
-    tr_arr_sol = np.transpose(arr_sol)
+    arr_sol, arr_t = num_integration(rhs, initial_vec, T)
+    # tr_arr_sol = np.transpose(arr_sol)
 
     # draw graph for x and y by time
-    draw_graph([arr_t], [np.mod(tr_arr_sol[0], 2*np.pi) - np.pi,
-                         np.mod(tr_arr_sol[2], 2*np.pi) - np.pi],
+    draw_graph([arr_t], [np.mod(arr_sol[0], 2*np.pi) - np.pi,
+                         np.mod(arr_sol[2], 2*np.pi) - np.pi],
                [(T-200, T), (-np.pi-0.5, np.pi+0.5)],
                x_name='t', colors=['blue', 'red'], legend=['x(t)', 'y(t)'])
     
     # darw graph for x and y derivatives by time
-    max_xy_der = max(max(tr_arr_sol[1]), max(tr_arr_sol[3]))
-    min_xy_der = min(min(tr_arr_sol[1]), min(tr_arr_sol[3]))
+    max_xy_der = max(max(arr_sol[1]), max(arr_sol[3]))
+    min_xy_der = min(min(arr_sol[1]), min(arr_sol[3]))
     
-    draw_graph([arr_t], [tr_arr_sol[1], tr_arr_sol[3]],
+    draw_graph([arr_t], [arr_sol[1], arr_sol[3]],
                [(T-200, T), (min_xy_der-0.5, max_xy_der+0.5)],
                x_name='t', colors=['blue', 'red'], legend=['\u1E8B(t)', '\u1E8F(t)'])

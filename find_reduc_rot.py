@@ -1,6 +1,7 @@
 import numpy as np
 from system_dynamic import xy_dyn, num_integration, draw_graph
-from monodromia_matrix import stability_determination
+# from monodromia_matrix import stability_determination
+from syst_without_reduc import full_syst_stability_determination
 
 
 def get_xy_from_vec_i(N, mu, epsilon1, alpha1, epsilon2, alpha2):
@@ -40,7 +41,7 @@ def FG(vec_i, rhs):
     T = vec_i[3]
     res = np.array([0., 0., 0., 0.])
     
-    vT = num_integration(rhs, vec_for_int, T, 0.001)[0][-1]
+    vT = np.transpose(num_integration(rhs, vec_for_int, T)[0])[-1]
     
     res[0] = vT[0] + 2*np.pi
     res[1] = vT[1] - vec_i[0]
@@ -85,10 +86,16 @@ def find_next_vec(vec_i, fg, rhs, calc_xy):
     return vec_i - np.dot(inv_matrix, fg)
 
 
+# def make_func_find_initial_vec(N, mu, eps1, alp1, eps2, alp2):
+#     rhs = xy_dyn(N, mu, epsilon1, alpha1, epsilon2, alpha2)
+#     calc_xy = get_xy_from_vec_i(N, mu, epsilon1, alpha1, epsilon2, alpha2)
+#     f_stab_det = full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
+
 def find_initial_vec(vec_0, rhs, calc_xy, f_stab_det):
     vec_i = vec_0
     find_flag = False
     is_stable = False
+    eigv = None
     
     for _ in range(20):
         # print('\n', vec_i)
@@ -111,9 +118,9 @@ def find_initial_vec(vec_0, rhs, calc_xy, f_stab_det):
         vec_i = find_next_vec(vec_i, fg, rhs, calc_xy)
     
     if find_flag:
-        is_stable = f_stab_det(vec_i)
+        is_stable, eigv = f_stab_det(vec_i)
     
-    return vec_i, find_flag, is_stable
+    return vec_i, find_flag, is_stable, eigv
 
 
 def turnover_made(t, y):
@@ -140,31 +147,30 @@ if __name__ == "__main__":
     # calculate functions
     rhs = xy_dyn(N, mu, epsilon1, alpha1, epsilon2, alpha2)
     calc_xy = get_xy_from_vec_i(N, mu, epsilon1, alpha1, epsilon2, alpha2)
-    f_stab_det = stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
+    f_stab_det = full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
         
     # Newton's method
-    initial_vec, find_flag, is_stable = find_initial_vec(vec_0, rhs, calc_xy, f_stab_det)
+    initial_vec, find_flag, is_stable, eigv = find_initial_vec(vec_0, rhs, calc_xy, f_stab_det)
     print(initial_vec.tolist(), '\nFind flag:', find_flag, '\nIs stable:', is_stable)
     
     # numerical integration
-    step_size = 0.01
     vec_for_int = np.array([0, initial_vec[0], initial_vec[1], initial_vec[2]])
     T = initial_vec[3]
     
-    arr_sol, arr_t = num_integration(rhs, vec_for_int, T, step_size)
-    tr_arr_sol = np.transpose(arr_sol)
+    arr_sol, arr_t = num_integration(rhs, vec_for_int, T)
+    # tr_arr_sol = np.transpose(arr_sol)
     # print(arr_sol[0] - arr_sol[-1] - np.array([2*np.pi, 0, 2*np.pi, 0]))
     
     # darw graph for x and y derivatives by time
-    max_xy_der = max(max(tr_arr_sol[1]), max(tr_arr_sol[3]))
-    min_xy_der = min(min(tr_arr_sol[1]), min(tr_arr_sol[3]))
+    max_xy_der = max(max(arr_sol[1]), max(arr_sol[3]))
+    min_xy_der = min(min(arr_sol[1]), min(arr_sol[3]))
     
-    draw_graph([arr_t], [tr_arr_sol[1], tr_arr_sol[3]], 
+    draw_graph([arr_t], [arr_sol[1], arr_sol[3]], 
                [(0, initial_vec[3]), (min_xy_der-0.5, max_xy_der+0.5)],
                x_name='t', colors=['blue', 'red'], legend=['\u1E8B(t)', '\u1E8F(t)'])
     
     # draw graph for x and y by time
-    draw_graph([arr_t], [np.mod(tr_arr_sol[0], 2*np.pi) - np.pi,
-                         np.mod(tr_arr_sol[2], 2*np.pi) - np.pi], 
+    draw_graph([arr_t], [np.mod(arr_sol[0], 2*np.pi) - np.pi,
+                         np.mod(arr_sol[2], 2*np.pi) - np.pi], 
                [(0, initial_vec[3]), (-np.pi, np.pi)],
                x_name='t', colors=['blue', 'red'], legend=['x(t)', 'y(t)'])

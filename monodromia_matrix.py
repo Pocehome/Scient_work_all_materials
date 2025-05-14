@@ -154,9 +154,9 @@ def stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2):
         
         stability_err = 2*1e-3
         if np.all(abs(eigvals[1:]) < 1) and abs(eigvals[0]) < 1+stability_err:
-            return True
+            return True, eigvals
         else:
-            return False
+            return False, eigvals
         
     return f_stab_det
 
