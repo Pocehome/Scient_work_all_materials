@@ -199,6 +199,12 @@ def write_to_file(file_name, N, mu, epsilon1, alpha1, area_step_n, area_existenc
 
 
 if __name__ == "__main__":
+    # parameters
+    N = 11
+    mu = 1.0
+    epsilon1 = 1.0
+    alpha1 = 1.7
+    area_step_n = 50
     
     # file_name = (f'Results/Reduced_area_exist_N={N}_mu={mu:.2f}_'\
     #         f'eps1={epsilon1:.5f}_alpha1={alpha1:.5f}_stepN={area_step_n}.txt')
@@ -210,14 +216,7 @@ if __name__ == "__main__":
     # file_name = 'area_stability_for_scient_work.txt'
         
     try:
-        # parameters
-        N = 11
-        mu = 1.0
-        epsilon1 = 1.0
-        alpha1 = 1.7
-        
         # area settings
-        area_step_n = 50
         alpha2_step = 2*np.pi / area_step_n
         epsilon2_step = 0.2 / area_step_n
         alpha2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
