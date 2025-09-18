@@ -34,7 +34,7 @@ def step_by_step_finding(targ_alp1, pars, init_vec, step):
             else:
                 pars[3] -= step
             
-            # print('alpha1 =', pars[3])
+            print('alpha1 =', pars[3])
             init_vec, find_flag, isStab, eigv = full_finding_func(pars, prev_init_vec, printing=True)
             
             if find_flag:
@@ -72,12 +72,11 @@ def step_by_step_finding(targ_alp1, pars, init_vec, step):
 
 
 def search_on_line(target_alp1, f_name):
-    steps = [0.01, 0.005, 0.0025, 0.00125, 0.000625, 0.0003125, 0.00015625, 7.8125e-05, 3.90625e-05]
-    # steps = [1.953125e-05, 9.765625e-06]
+    # steps = [0.01, 0.005, 0.0025, 0.00125, 0.000625, 0.0003125, 0.00015625, 7.8125e-05, 3.90625e-05]
+    steps = [7.8125e-05, 3.90625e-05, 1.953125e-05, 9.765625e-06, 4.8828125e-06]
     res = []  # res struct: [[alp2, alp1, init_vec, isStab]]
     
     try:
-        a = 1/0
         N, mu, eps1, eps2, target_alp1, line = read_res(f_name)
         
         for el in line:
@@ -90,6 +89,7 @@ def search_on_line(target_alp1, f_name):
             # print(el[0], el[1], find_flag)
             print(f'\nAlpha_2 = {el[0]:.8f}, \tAlpha_1 = {el[1]:.8f}\n')
             for step in steps:
+                print('Step =', step)
                 pars, init_vec, find_flag, isStab, eigv = step_by_step_finding(target_alp1, pars, init_vec, step)
                 
             res.append([pars[5], pars[3], init_vec.tolist()])
@@ -148,21 +148,23 @@ def read_res(file_name):
 
 
 def write_results_for_line(file_pars, tar_alp1, res):
-    with open(f'new_alpha1_results_alp1={tar_alp1}.txt', 'w') as fw:
+    with open(f'3new_alpha1_results_alp1={tar_alp1}.txt', 'w') as fw:
         json.dump([file_pars, tar_alp1, res], fw)
 
 
 if __name__ == "__main__":
     # Const params
-    # N = 11
-    # mu = 1.0
-    # epsilon1 = 1.0
+    N = 11
+    mu = 1.0
+    epsilon1 = 1.0
     
     
     # Initial params
-    target_alpha1 = 1.8
-    params, results = search_on_line(target_alpha1, f'new_alpha1_results_alp1={target_alpha1}.txt')
-    write_results_for_line(params, target_alpha1, results)
+    # target_alpha1 = 1.6
+    # params, results = search_on_line(target_alpha1, f'2new_alpha1_results_alp1={target_alpha1}.txt')
+    # write_results_for_line(params, target_alpha1, results)
+    
+    # N, mu, eps1, eps2, target_alp1, line = read_res(f'new_alpha1_results_alp1={target_alpha1}.txt')
     
     # params = [11, 1.0, 1.0, 0.08]
     # result_el = [2.6495571273128915, 1.6009375000000008, [-0.33733754955644696, 1.407603607372734, -0.19637161833482533, 87.02323355182159]]
@@ -171,4 +173,17 @@ if __name__ == "__main__":
     
     # Printing
     # print_alphas1(results, target_alpha1)
+    
+    
+    alpha1 = 1.6
+    alpha2 = 2.5
+    epsilon2 = 0.025
+    # initial_xy_vec = np.array([0, 0.013123, 1.91570423, 0.14322131])
+    # T = 70.56
+    
+    initial_vec = [0.013123, 1.91570423, 0.14322131, 70.56]
+    pars = [N, mu, epsilon1, alpha1, epsilon2, alpha2]
+    
+    init_vec, find_flag, isStab, eigv = full_finding_func(pars, initial_vec, printing=True, do_stable_det=True)
+    print(find_flag)
     

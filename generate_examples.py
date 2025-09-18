@@ -1,20 +1,8 @@
-from syst_without_reduc import np, full_syst_stability_determination, draw_graph, create_full_syst_func, num_integration
+from syst_without_reduc import np, full_syst_stability_determination, draw_graph, create_full_syst_func, num_integration, draw_start_end
 import json
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-
-
-def draw_start_end(arr_sol, arr_t, _y_name, T, ex_legend=[]):
-    # draw_graph([arr_t], arr_sol,
-    #             [(0, 200), (-np.pi-0.5, np.pi+0.5)],
-    #             x_name='t', y_name=_y_name,
-    #             colors=['blacK'], legend=ex_legend)
-
-    draw_graph([arr_t], arr_sol,
-               [(T-200, T), (-np.pi-0.5, np.pi+0.5)],
-               x_name='t', y_name=_y_name,
-               colors=['blacK'], legend=ex_legend)
 
 
 def draw_examples_with_theta1(arr_sol, arr_t, N, T):
@@ -96,20 +84,20 @@ def create_example(params, area_el, file_name, n_ciclop=False):
     init_vec = np.array(area_el[2])
     
     try:
-        # a = 1/0
+        # 1/0
         with open('Examples/'+file_name, 'r') as fr:
             arr_sol, arr_t, time, eigv = json.load(fr)
             eigv = np.array([complex(num) for num in eigv])
         
     except:
-        a = 1/0
+        # a = 1/0
         # stable determination
         f_stab_det = full_syst_stability_determination(N, mu, eps1, alp1, eps2, alp2)
         isStable, eigv = f_stab_det(init_vec)
         print(isStable)
         
         # numerical integration
-        time = 200
+        time = 500
         init_xy_vec = np.array([0., init_vec[0], init_vec[1], init_vec[2]])
         init_full_syst_vec = np.array([0., 0.] + 
                                [init_xy_vec[0], init_xy_vec[1]]*K + 
@@ -196,6 +184,64 @@ def draw_phase_diff(params, area_el, file_name, n_cyclop=0):
     plt.title('Диаграмма разностей фаз', fontsize=14)
     plt.tight_layout()
     plt.show()
+    
+    
+def plot_complex_numbers(complex_numbers):
+    # Создаем фигуру и оси
+    fig, ax = plt.subplots(figsize=(8, 8))
+    
+    # Рисуем единичную окружность (до всех точек)
+    circle = plt.Circle((0, 0), 1, color='black', fill=False, linestyle='--', linewidth=1)
+    ax.add_patch(circle)
+    
+    # Словарь для хранения количества точек в каждой позиции
+    point_counts = {}
+    
+    # Обрабатываем каждое комплексное число
+    for z in complex_numbers:
+        # Округляем координаты до 6 знаков после запятой
+        x = round(z.real, 6)
+        y = round(z.imag, 6)
+        pos = (x, y)
+        
+        # Увеличиваем счетчик для этой позиции
+        if pos in point_counts:
+            point_counts[pos] += 1
+        else:
+            point_counts[pos] = 1
+    
+    # Рисуем точки и подписи
+    for (x, y), count in point_counts.items():
+        # Определяем цвет точки
+        distance = np.sqrt(x**2 + y**2)
+        if abs(distance - 1) < 1e-6:  # На окружности (с учетом погрешности)
+            color = 'black'
+        elif distance < 1:  # Внутри круга
+            color = 'blue'
+        else:  # Снаружи круга
+            color = 'red'
+        
+        # Рисуем точку
+        ax.scatter(x, y, color=color, s=50)
+        
+        # Добавляем текст с количеством точек
+        ax.text(x + 0.05, y + 0.05, str(count), fontsize=8)
+    
+    # Настраиваем оси
+    ax.axhline(0, color='black', linewidth=0.5)
+    ax.axvline(0, color='black', linewidth=0.5)
+    ax.grid(True, linestyle='--', alpha=0.5)
+    ax.set_aspect('equal', 'box')
+    ax.set_xlabel(r'$Re \lambda$')
+    ax.set_ylabel('$Im \lambda$')
+    ax.set_title('Eigenvalues')
+    
+    # Автоматически подбираем границы, чтобы все точки были видны
+    max_abs = max(abs(np.array(list(point_counts.keys()))).max(), 1.5)
+    ax.set_xlim(-max_abs, max_abs)
+    ax.set_ylim(-max_abs, max_abs)
+    
+    plt.show()
 
 
 if __name__ == '__main__':
@@ -203,7 +249,7 @@ if __name__ == '__main__':
     N = 11
     mu = 1.0
     epsilon1 = 1.0
-    alpha1 = 1.6
+    alpha1 = 1.7
     K = (N-1) // 2
     
     #  Stable examples
@@ -221,10 +267,11 @@ if __name__ == '__main__':
     stable_ex = [-2.7037167544041196, 0.08, [-0.07604374953866636, 2.3880081439424705, 0.10081147902837394, 41.215762422260774], True] 
     n_ciclop = 2
     
-    # stable_eigv = create_example([N, mu, epsilon1, alpha1], stable_ex,
-    #                               f'stable_example_alp2={stable_ex[0]:.5f}.txt', n_ciclop)
-    draw_phase_diff([N, mu, epsilon1, alpha1], stable_ex, 
-                    f'stable_example_alp2={stable_ex[0]:.5f}.txt', n_ciclop)
+    stable_eigv = create_example([N, mu, epsilon1, alpha1], stable_ex,
+                                  f'stable_example_alp2={stable_ex[0]:.5f}.txt', n_ciclop)
+    # plot_complex_numbers(stable_eigv)
+    # draw_phase_diff([N, mu, epsilon1, alpha1], stable_ex,
+    #                 f'stable_example_alp2={stable_ex[0]:.5f}.txt', n_ciclop)
     
     
     # Unstable examples
@@ -236,11 +283,15 @@ if __name__ == '__main__':
     # unstable_ex = [1.6945129606215776, 0.08, [-0.0186408567985006, 2.9468677840319804, 0.1982185503528971, 52.112803327402816], False]
     # n_ciclop = 0
     
-    unstable_ex = [-2.854513201776431, 0.08, [-0.074726393131724, 2.372992393366901, 0.09952988138941797, 41.430975121830905], False]
-    n_ciclop = 2
+    # unstable_ex = [-2.854513201776431, 0.08, [-0.074726393131724, 2.372992393366901, 0.09952988138941797, 41.430975121830905], False]
+    # n_ciclop = 2
+    
+    # alpha1 = 1.6
+    # unstable_ex = [1.7460177631384457, 0.025, [0.010230712499416494, 1.6323147174954111, 0.1285908557725488, 87.2591730847317], True]
+    # n_ciclop = 0
     
     # unstable_eigv = create_example([N, mu, epsilon1, alpha1], unstable_ex,
     #                                 f'unstable_example_alp2={unstable_ex[0]:.5f}.txt', n_ciclop)
-    draw_phase_diff([N, mu, epsilon1, alpha1], unstable_ex, 
-                    f'unstable_example_alp2={unstable_ex[0]:.5f}.txt', n_ciclop)
+    # draw_phase_diff([N, mu, epsilon1, alpha1], unstable_ex, 
+    #                 f'unstable_example_alp2={unstable_ex[0]:.5f}.txt', n_ciclop)
     

@@ -43,9 +43,9 @@ def FG(vec_i, rhs):
     
     vT = num_integration(rhs, vec_for_int, T)[0][:, -1]
     
-    res[0] = vT[0] + 2*np.pi
+    res[0] = vT[0] - 2*np.pi # !!!
     res[1] = vT[1] - vec_i[0]
-    res[2] = vT[2] - vec_i[1] + 2*np.pi
+    res[2] = vT[2] - vec_i[1] - 2*np.pi # !!!
     res[3] = vT[3] - vec_i[2]
     
     return res
@@ -152,54 +152,27 @@ def full_finding_func(params, vec_0, do_stable_det=False, printing=False):
 
 if __name__ == "__main__":
     # parameters
-    N = 11
+    # N = 11
     mu = 1.0
     epsilon1 = 1.0
-    alpha1 = 1.7
+    # alpha1 = 1.7
     
     
     # Initial conditions
-    # epsilon2 = 0.08
-    # alpha2 = -2.1
-    # vec_0 = np.array([0.014374229240869783, 1.8119520391656536, 0.1509289175514676, 69.782630])
-    
-    # alpha2 = -np.pi
-    # epsilon2 = 0.1
-    # vec_0 = np.array([-0.07515058, 2.29669348, 0.08332114, 42.04651471])
-    
-    epsilon2 = 0.08
-    alpha2 = -2.0
-    vec_0 = np.array([-0.05921021, 2.64676814, 0.14678535, 41.02969191])
-    
+    # N = 11
+    # alpha1 = 1.7
     # epsilon2 = 0.08
     # alpha2 = -2.0
-    # vec_0 = np.array([-0.23284307726045125, 1.778821369446479, -0.07476857233464937, 56.803152136107485])
+    # vec0 = np.array([-0.05921021, 2.64676814, 0.14678535, 41.02969191])
+    
+    N = 11
+    alpha1 = 1.6
+    epsilon2 = 0.1378
+    alpha2 = 1.72
+    vec0 = np.array([0.017603047603766762, 1.7506376970150441, 0.16009337385565578, 65.65979309727878])
     
     
     # Finding
     params = [N, mu, epsilon1, alpha1, epsilon2, alpha2]
-    initial_vec, find_flag, isStable, eigv = full_finding_func(params, vec_0)
-    print(initial_vec, find_flag, isStable, eigv)
-    
-    
-    # # numerical integration
-    # vec_for_int = np.array([0, initial_vec[0], initial_vec[1], initial_vec[2]])
-    # T = initial_vec[3]
-    
-    # arr_sol, arr_t = num_integration(rhs, vec_for_int, T)
-    # # tr_arr_sol = np.transpose(arr_sol)
-    # # print(arr_sol[0] - arr_sol[-1] - np.array([2*np.pi, 0, 2*np.pi, 0]))
-    
-    # # draw graph for x and y derivatives by time
-    # max_xy_der = max(max(arr_sol[1]), max(arr_sol[3]))
-    # min_xy_der = min(min(arr_sol[1]), min(arr_sol[3]))
-    
-    # draw_graph([arr_t], [arr_sol[1], arr_sol[3]], 
-    #             [(0, initial_vec[3]), (min_xy_der-0.5, max_xy_der+0.5)],
-    #             x_name='t', colors=['blue', 'red'], legend=['\u1E8B(t)', '\u1E8F(t)'])
-    
-    # # draw graph for x and y by time
-    # draw_graph([arr_t], [np.mod(arr_sol[0], 2*np.pi) - np.pi,
-    #                       np.mod(arr_sol[2], 2*np.pi) - np.pi], 
-    #             [(0, initial_vec[3]), (-np.pi, np.pi)],
-    #             x_name='t', colors=['blue', 'red'], legend=['x(t)', 'y(t)'])
+    initial_vec, find_flag, isStable, eigv = full_finding_func(params, vec0)
+    print(initial_vec.tolist(), find_flag, isStable, eigv)

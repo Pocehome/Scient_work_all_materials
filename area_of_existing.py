@@ -2,13 +2,7 @@ from find_reduc_rot import (np, xy_dyn, get_xy_from_vec_i, find_initial_vec, ful
 import json
 
 
-def stretching_by_alpha2(epsilon2, init_alpha2, vec_in_init_alpha2, alpha2_step, area_step_n):
-    # parameters
-    N = 11
-    mu = 1.0
-    epsilon1 = 1.0
-    alpha1 = 1.7
-    
+def stretching_by_alpha2(epsilon2, init_alpha2, vec_in_init_alpha2, alpha2_step, area_step_n):    
     # area_existence = [alpha2, epsilon2, [x_der, y, y_der, T], is_stable]
     alpha2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
     change_flag = False
@@ -31,7 +25,7 @@ def stretching_by_alpha2(epsilon2, init_alpha2, vec_in_init_alpha2, alpha2_step,
             f_stab_det = full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
             
             # Newton's method
-            init_vec, find_flag, is_stable, eigv = find_initial_vec(init_vec, rhs, calc_xy, f_stab_det)
+            init_vec, find_flag, is_stable, eigv = find_initial_vec(init_vec, rhs, calc_xy, f_stab_det, do_stab_det=True)
             
             if not find_flag:
                 break
@@ -60,7 +54,7 @@ def stretching_by_alpha2(epsilon2, init_alpha2, vec_in_init_alpha2, alpha2_step,
             f_stab_det = full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
             
             # Newton's method
-            init_vec, find_flag, is_stable, eigv = find_initial_vec(init_vec, rhs, calc_xy, f_stab_det)
+            init_vec, find_flag, is_stable, eigv = find_initial_vec(init_vec, rhs, calc_xy, f_stab_det, do_stab_det=True)
             
             if not find_flag:
                 break
@@ -79,13 +73,7 @@ def stretching_by_alpha2(epsilon2, init_alpha2, vec_in_init_alpha2, alpha2_step,
         return alpha2_area_existence, change_flag
 
 
-def stretching_by_epsilon2(init_epsilon2, alpha2, vec_in_init_epsilon2, epsilon2_step, area_step_n):
-    # parameters
-    N = 11
-    mu = 1.0
-    epsilon1 = 1.0
-    alpha1 = 1.7
-    
+def stretching_by_epsilon2(init_epsilon2, alpha2, vec_in_init_epsilon2, epsilon2_step, area_step_n):    
     # area_existence = [alpha2, epsilon2, [x_der, y, y_der, T], is_stable]
     epsilon2_area_existence = [0., 0., [0., 0., 0., 0.], True] * area_step_n
     find_flag = False
@@ -200,43 +188,68 @@ def write_to_file(file_name, N, mu, epsilon1, alpha1, area_step_n, area_existenc
 
 if __name__ == "__main__":
     # parameters
-    N = 11
     mu = 1.0
     epsilon1 = 1.0
-    alpha1 = 1.7
-    area_step_n = 50
+    
+    # area settings
+    # area_step_n = 250
+    area_step_n = 250
+    alpha2_step = 2*np.pi / area_step_n
+    epsilon2_step = 0.2 / area_step_n
+    alpha2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
+    epsilon2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
+    area_existence = [alpha2_area_existence] * area_step_n
     
     # file_name = (f'Results/Reduced_area_exist_N={N}_mu={mu:.2f}_'\
-    #         f'eps1={epsilon1:.5f}_alpha1={alpha1:.5f}_stepN={area_step_n}.txt')
+    #              f'eps1={epsilon1:.5f}_alpha1={alpha1:.5f}_stepN={area_step_n}.txt')
     
-    file_name = 'Full_test2.txt'
-    # file_name = 'one_line_test.txt'
+    # file_name = 'Full_test2.txt'
+    # file_name = 'N=13_one_line_test.txt'
+    file_name = 'OneLine_alp1=1.6_eps2=0.1378.txt'
+    # file_name = 'one_line_test2.txt'
     # file_name = 'test.txt'
     # file_name = 'Area_exist_for_scient_work.txt'
     # file_name = 'area_stability_for_scient_work.txt'
+    # file_name = 'Full_test_alpha1=1.6.txt'
+    # file_name = 'Full_test2_alpha1=1.6.txt'
         
     try:
-        # area settings
-        alpha2_step = 2*np.pi / area_step_n
-        epsilon2_step = 0.2 / area_step_n
-        alpha2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
-        epsilon2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
-        area_existence = [alpha2_area_existence] * area_step_n
+        # Initial conditions:
+        # alpha1 = 1.7
+        # init_epsilon2 = 0.08
+        # init_alpha2 = -2.0
+        # initial_vec = np.array([-0.05921021, 2.64676814, 0.14678535, 41.02969191])
         
-        init_epsilon2 = 0.08
-        init_alpha2 = -2.0
-        initial_vec = np.array([-0.05921021, 2.64676814, 0.14678535, 41.02969191])
+        # alpha1 = 1.6
+        # init_epsilon2 = 0.025
+        # init_alpha2 = 2.5
+        # initial_vec = np.array([0.01303747, 1.90590179, 0.14309493, 70.92078362])
+
+        # N = 11
+        # alpha1 = 1.6
+        # init_epsilon2 = 0.1378
+        # init_alpha2 = 2.123
+        # initial_vec = np.array([0.007466, 2.133077, 0.124330, 63.700816])
         
-        # alpha2_area_existence, flag = stretching_by_alpha2(init_epsilon2, init_alpha2, initial_vec, alpha2_step, area_step_n)
-        # area_existence[0] = alpha2_area_existence
+        N = 11
+        alpha1 = 1.6
+        init_epsilon2 = 0.1378
+        init_alpha2 = 1.72
+        initial_vec = np.array([0.017603047603766762, 1.7506376970150441, 0.16009337385565578, 65.65979309727878])
+        
+        
+        # Stretching
+        alpha2_area_existence, flag = stretching_by_alpha2(init_epsilon2, init_alpha2, initial_vec, alpha2_step, area_step_n)
+        area_existence[0] = alpha2_area_existence
         
         # epsilon2_area_existence, flag = stretching_by_epsilon2(init_epsilon2, init_alpha2, initial_vec, epsilon2_step, area_step_n)
         
-        area_existence = stretching_by_epsilon2_alpha2(init_epsilon2, init_alpha2, initial_vec, epsilon2_step, alpha2_step, area_step_n)
+        # area_existence = stretching_by_epsilon2_alpha2(init_epsilon2, init_alpha2, initial_vec, epsilon2_step, alpha2_step, area_step_n)
         
-        # writing to file        
-        write_to_file(file_name, N, mu, epsilon1, alpha1, area_existence)
+        
+        # Writing to file        
+        write_to_file(file_name, N, mu, epsilon1, alpha1, area_step_n, area_existence)
     
     except:
-        # writing to file        
+        # Writing to file        
         write_to_file(file_name, N, mu, epsilon1, alpha1, area_step_n, area_existence)
