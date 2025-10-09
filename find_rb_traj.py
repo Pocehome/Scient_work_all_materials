@@ -139,8 +139,8 @@ def full_rb_finding_func(params, vec_0, period_len, do_stab_det=False, printing=
     f_stab_det = full_syst_stability_determination(N, mu, eps1, alp1, eps2, alp2)
         
     # Newton's method
-    initial_vec, find_flag, isStable, eigv = find_rb_initial_vec(vec_0, rhs, calc_xy, f_stab_det, 
-                                                                 period_len, do_stab_det)
+    initial_vec, find_flag, isStable, eigv = find_rb_init_vec(vec_0, rhs, calc_xy, f_stab_det,
+                                                              period_len, do_stab_det)
     if printing:
         if do_stab_det:
             print([alp2, eps2, initial_vec.tolist(), isStable],

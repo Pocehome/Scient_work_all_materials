@@ -1,5 +1,5 @@
-from find_rb_traj import (np, xy_dyn, get_xy_from_vec_i, find_rb_init_vec, 
-                          full_syst_stability_determination)
+from find_rb_traj import np, xy_dyn, get_xy_from_vec_i, find_rb_init_vec
+from syst_without_reduc import full_syst_stability_determination
 import json
 
 
@@ -14,6 +14,7 @@ def rb_stretching_by_alpha2(eps2, init_alp2, vec_in_init_alp2, alp2_step, area_s
     alpha2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
     change_flag = False
     rotate_flag = False
+    right_strech_end = -2*np.pi
     
     try:
         # right stretching by alpha2
@@ -22,9 +23,12 @@ def rb_stretching_by_alpha2(eps2, init_alp2, vec_in_init_alp2, alp2_step, area_s
         while True:
             if alp2 > init_alp2 and rotate_flag:
                 break
-            if alp2 > np.pi:
+            
+            elif alp2 > np.pi:
                 alp2 -= 2*np.pi
                 rotate_flag = True
+                
+            right_strech_end = alp2
             
             # calculate functions
             rhs = xy_dyn(N, mu, eps1, alp1, eps2, alp2)
@@ -50,12 +54,15 @@ def rb_stretching_by_alpha2(eps2, init_alp2, vec_in_init_alp2, alp2_step, area_s
         alp2 = init_alp2 - alp2_step
         init_vec = vec_in_init_alp2
         while True:
-            if alp2 < -np.pi:
-                if rotate_flag:
-                    break
-                else:
-                    alp2 += 2*np.pi
-                    rotate_flag = True
+            if init_alp2 < alp2 < right_strech_end:
+                break
+            
+            elif alp2 < right_strech_end < init_alp2:
+                break
+            
+            elif alp2 < -np.pi and not rotate_flag:
+                alp2 += 2*np.pi
+                rotate_flag = True
             
             # calculate functions
             rhs = xy_dyn(N, mu, eps1, alp1, eps2, alp2)
@@ -151,7 +158,8 @@ def stretching_by_epsilon2(init_epsilon2, alpha2, vec_in_init_epsilon2, epsilon2
         return epsilon2_area_existence, change_flag
 
 
-def rb_stretching_by_epsilon2_alpha2(init_eps2, alp2, vec_in_init_eps2, eps2_step, alp2_step, area_step_n, period_len):    
+def rb_stretching_by_epsilon2_alpha2(init_eps2, alp2, vec_in_init_eps2, eps2_step, alp2_step, area_step_n, period_len,
+                                     eps2_bord=(0., 0.2)):    
     # area_existence = [alpha2, epsilon2, [x_der, y, y_der, T], is_stable]
     alpha2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
     area_existence = [alpha2_area_existence] * area_step_n
@@ -161,7 +169,7 @@ def rb_stretching_by_epsilon2_alpha2(init_eps2, alp2, vec_in_init_eps2, eps2_ste
         eps2 = init_eps2
         init_vec = vec_in_init_eps2
         while True:
-            if eps2 > 0.2:
+            if eps2 > eps2_bord[1]:
                 break
             
             alpha2_area_existence, change_flag = rb_stretching_by_alpha2(eps2, alp2, init_vec, alp2_step, area_step_n, period_len)
@@ -178,7 +186,7 @@ def rb_stretching_by_epsilon2_alpha2(init_eps2, alp2, vec_in_init_eps2, eps2_ste
         eps2 = init_eps2 - eps2_step
         init_vec = vec_in_init_eps2
         while True:
-            if eps2 < 0:
+            if eps2 < eps2_bord[0]:
                 break
             
             alpha2_area_existence, change_flag = rb_stretching_by_alpha2(eps2, alp2, init_vec, alp2_step, area_step_n, period_len)
@@ -228,40 +236,41 @@ if __name__ == "__main__":
     mu = 1.0
     epsilon1 = 1.0
     alpha1 = 1.7
-    area_step_n = 25
+    area_step_n = 50
     
     period_len = 2*np.pi
     
     dir_name = 'RotobreatherResults'
-    # file_name = (f'Results/Reduced_area_exist_N={N}_mu={mu:.2f}_'\
-    #         f'eps1={epsilon1:.5f}_alpha1={alpha1:.5f}_stepN={area_step_n}.txt')
     
-    # file_name = 'Full_test2.txt'
-    # file_name = 'one_line_test.txt'
+    # file_name = (f'Results/Reduced_area_exist_N={N}_mu={mu:.2f}_'\
+    #              f'eps1={epsilon1:.5f}_alpha1={alpha1:.5f}_stepN={area_step_n}.txt')
     file_name = 'test.txt'
-    # file_name = 'Area_exist_for_scient_work.txt'
-    # file_name = 'area_stability_for_scient_work.txt'
         
     try:
-        # area settings
+        # Area settings
         alpha2_step = 2*np.pi / area_step_n
         epsilon2_step = 0.2 / area_step_n
         alpha2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
         epsilon2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
         area_existence = [alpha2_area_existence] * area_step_n
         
+        
+        # Initial conditions
         init_epsilon2 = 0.08
         init_alpha2 = -2.0
-        initial_vec = np.array([-0.05921021, 2.64676814, 0.14678535, 41.02969191])
+        initial_vec = np.array([-0.05921, 2.646768, 0.146785, 41.029692])
         
+        
+        # Calc type
         alpha2_area_existence, flag = rb_stretching_by_alpha2(init_epsilon2, init_alpha2, initial_vec, alpha2_step, area_step_n, period_len)
         area_existence[0] = alpha2_area_existence
         
         # area_existence = rb_stretching_by_epsilon2_alpha2(init_epsilon2, init_alpha2, initial_vec, epsilon2_step, alpha2_step, area_step_n, period_len)
         
-        # writing to file        
-        write_to_file(file_name, N, mu, epsilon1, alpha1, area_step_n, area_existence)
+        
+        # Writing to file        
+        write_to_file(file_name, dir_name, N, mu, epsilon1, alpha1, area_step_n, area_existence)
     
     except:
-        # writing to file        
-        write_to_file(file_name, N, mu, epsilon1, alpha1, area_step_n, area_existence)
+        # Writing to file        
+        write_to_file(file_name, dir_name, N, mu, epsilon1, alpha1, area_step_n, area_existence)

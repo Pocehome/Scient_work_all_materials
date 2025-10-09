@@ -1,4 +1,5 @@
-from find_reduc_rot import (np, xy_dyn, get_xy_from_vec_i, find_initial_vec, full_syst_stability_determination)
+from find_reduc_rot import np, xy_dyn, get_xy_from_vec_i, find_initial_vec
+from syst_without_reduc import full_syst_stability_determination
 import json
 
 

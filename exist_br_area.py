@@ -14,6 +14,7 @@ def br_stretching_by_alpha2(eps2, init_alp2, vec_in_init_alp2, alp2_step, area_s
     alpha2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
     change_flag = False
     rotate_flag = False
+    right_strech_end = -2*np.pi
     
     try:
         # right stretching by alpha2
@@ -22,9 +23,12 @@ def br_stretching_by_alpha2(eps2, init_alp2, vec_in_init_alp2, alp2_step, area_s
         while True:
             if alp2 > init_alp2 and rotate_flag:
                 break
-            if alp2 > np.pi:
+            
+            elif alp2 > np.pi:
                 alp2 -= 2*np.pi
                 rotate_flag = True
+                
+            right_strech_end = alp2
             
             # calculate functions
             rhs = xy_dyn(N, mu, eps1, alp1, eps2, alp2)
@@ -50,12 +54,15 @@ def br_stretching_by_alpha2(eps2, init_alp2, vec_in_init_alp2, alp2_step, area_s
         alp2 = init_alp2 - alp2_step
         init_vec = vec_in_init_alp2
         while True:
-            if alp2 < -np.pi:
-                if rotate_flag:
-                    break
-                else:
-                    alp2 += 2*np.pi
-                    rotate_flag = True
+            if init_alp2 < alp2 < right_strech_end:
+                break
+            
+            elif alp2 < right_strech_end < init_alp2:
+                break
+            
+            elif alp2 < -np.pi and not rotate_flag:
+                alp2 += 2*np.pi
+                rotate_flag = True
             
             # calculate functions
             rhs = xy_dyn(N, mu, eps1, alp1, eps2, alp2)
@@ -151,7 +158,8 @@ def stretching_by_epsilon2(init_epsilon2, alpha2, vec_in_init_epsilon2, epsilon2
         return epsilon2_area_existence, change_flag
 
 
-def br_stretching_by_epsilon2_alpha2(init_eps2, alp2, vec_in_init_eps2, eps2_step, alp2_step, area_step_n, init_x):    
+def br_stretching_by_epsilon2_alpha2(init_eps2, alp2, vec_in_init_eps2, eps2_step, alp2_step, area_step_n, init_x,
+                                     eps2_bord=(0., 0.2)):    
     # area_existence = [alpha2, epsilon2, [x_der, y, y_der, T], is_stable]
     alpha2_area_existence = [[0., 0., [0., 0., 0., 0.], True]] * area_step_n
     area_existence = [alpha2_area_existence] * area_step_n
@@ -161,7 +169,7 @@ def br_stretching_by_epsilon2_alpha2(init_eps2, alp2, vec_in_init_eps2, eps2_ste
         eps2 = init_eps2
         init_vec = vec_in_init_eps2
         while True:
-            if eps2 > 0.2:
+            if eps2 > eps2_bord[1]:
                 break
             
             alpha2_area_existence, change_flag = br_stretching_by_alpha2(eps2, alp2, init_vec, alp2_step, area_step_n, init_x)
@@ -178,7 +186,7 @@ def br_stretching_by_epsilon2_alpha2(init_eps2, alp2, vec_in_init_eps2, eps2_ste
         eps2 = init_eps2 - eps2_step
         init_vec = vec_in_init_eps2
         while True:
-            if eps2 < 0:
+            if eps2 < eps2_bord[0]:
                 break
             
             alpha2_area_existence, change_flag = br_stretching_by_alpha2(eps2, alp2, init_vec, alp2_step, area_step_n, init_x)
@@ -228,7 +236,7 @@ if __name__ == "__main__":
     mu = 1.0
     epsilon1 = 1.0
     alpha1 = 1.7
-    area_step_n = 100
+    area_step_n = 50
     
     dir_name = 'BreatherResults'
     # file_name = 'test.txt'
@@ -260,12 +268,12 @@ if __name__ == "__main__":
         
         
         # Calc type
-        # alpha2_area_existence, flag = br_stretching_by_alpha2(init_epsilon2, init_alpha2, initial_vec, alpha2_step, area_step_n, initial_x)
-        # area_existence[0] = alpha2_area_existence
+        alpha2_area_existence, flag = br_stretching_by_alpha2(init_epsilon2, init_alpha2, initial_vec, alpha2_step, area_step_n, initial_x)
+        area_existence[0] = alpha2_area_existence
         
         # epsilon2_area_existence, flag = stretching_by_epsilon2(init_epsilon2, init_alpha2, initial_vec, epsilon2_step, area_step_n, initial_x)
         
-        area_existence = br_stretching_by_epsilon2_alpha2(init_epsilon2, init_alpha2, initial_vec, epsilon2_step, alpha2_step, area_step_n, initial_x)
+        # area_existence = br_stretching_by_epsilon2_alpha2(init_epsilon2, init_alpha2, initial_vec, epsilon2_step, alpha2_step, area_step_n, initial_x)
         
         
         # Writing to file        

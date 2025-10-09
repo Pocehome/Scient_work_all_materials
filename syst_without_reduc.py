@@ -302,7 +302,7 @@ if __name__ == '__main__':
     
     
     # Always parameters
-    directory = 'Syst_without_reduc_results/'
+    dir_name = 'Syst_without_reduc_results/'
     mu = 1.0
     epsilon1 = 1.0
     
@@ -342,13 +342,13 @@ if __name__ == '__main__':
     isNoise = False
     try:
         # 1/0
-        with open(directory + f'results_noise={isNoise}_N={N}_alp1={alpha1:.3f}_eps1={epsilon1:.3f}_alp2={alpha2:.3f}_eps2={epsilon2:.3f}.txt', 'r') as fr:
+        with open(dir_name + f'results_noise={isNoise}_N={N}_alp1={alpha1:.3f}_eps1={epsilon1:.3f}_alp2={alpha2:.3f}_eps2={epsilon2:.3f}.txt', 'r') as fr:
             initial_xy_vec, arr_sol, arr_t = json.load(fr)
     
     except:
         print('New calculating')
         arr_sol, arr_t = integrate_full_syst(N, mu, epsilon1, alpha1, epsilon2, alpha2, initial_xy_vec, T, noise=isNoise)
-        with open(directory + f'results_noise={isNoise}_N={N}_alp1={alpha1:.3f}_eps1={epsilon1:.3f}_alp2={alpha2:.3f}_eps2={epsilon2:.3f}.txt', 'w') as fw:
+        with open(dir_name + f'results_noise={isNoise}_N={N}_alp1={alpha1:.3f}_eps1={epsilon1:.3f}_alp2={alpha2:.3f}_eps2={epsilon2:.3f}.txt', 'w') as fw:
             json.dump([initial_xy_vec.tolist(), arr_sol.tolist(), arr_t.tolist()], fw)
             
     draw_full_syst(arr_sol, arr_t, arr_t[-1], T_inter=500, start=True, relative0=True)

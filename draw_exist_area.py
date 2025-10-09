@@ -66,23 +66,19 @@ if __name__ == "__main__":
     # dir_name = 'GoodResults'
     # file_name = 'Reduced_area_exist_N=11_mu=1.00_eps1=1.00000_alpha1=1.70000_stepN=250.txt'
     
-    # dir_name = 'RotobreatherResults'
-    # file_name = 'Area_exist_for_scient_work.txt'
-    # file_name = 'area_stability_for_scient_work.txt'
-    # file_name = 'Full_test.txt'
-    # file_name = 'Good results/Full_test2.txt'
-    # file_name = 'one_line_test.txt'
-    # file_name = 'one_Full_line_test.txt'
+    dir_name = 'RotobreatherResults'
+    # file_name = 'alpha1=1.7.txt'
+    file_name = 'test.txt'
     
-    dir_name = 'BreatherResults'
-    file_name = 'area1.txt'
+    # dir_name = 'BreatherResults'
+    # file_name = 'area1.txt'
     # file_name = 'area2.txt'
     # file_name = 'area3.txt'
     
     # file_name = 'test.txt'
     
     N, mu, epsilon1, alpha1, area_step_n, area_existence = read_file(dir_name, file_name)
-    # write_to_file(file_name, dir_name, N, mu, epsilon1, alpha1, area_step_n, area_existence)
+    write_to_file(file_name, dir_name, N, mu, epsilon1, alpha1, area_step_n, area_existence)
     
     # create_line(N, mu, epsilon1, alpha1, area_step_n, area_existence, 0.08)
         
