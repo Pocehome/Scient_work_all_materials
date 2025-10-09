@@ -1,6 +1,8 @@
 import numpy as np
+import json
+import matplotlib.pyplot as plt
 from numpy import sin, cos
-from system_dynamic import xy_dyn, num_integration, draw_graph
+from system_dynamic import xy_dyn, num_integration, draw_graph, draw_start_end, mod_2pi
 
 
 def create_H_func(eps1, alp1, eps2, alp2):
@@ -59,7 +61,7 @@ def create_delta_xy_dyn_func(N, mu, eps1, alp1, eps2, alp2):
     H = create_H_func(eps1, alp1, eps2, alp2)
     dH = create_dH_func(eps1, alp1, eps2, alp2)
     
-    f_xy_dyn = xy_dyn(N, mu, epsilon1, alpha1, epsilon2, alpha2)
+    f_xy_dyn = xy_dyn(N, mu, eps1, alp1, eps2, alp2)
     
     def delta_xy_dyn_func(t, Vec):
         xy_vec, delta_xy_vec = Vec[:4], Vec[4:]
@@ -174,7 +176,7 @@ def psi_dyn(N, mu, eps1, alp1, eps2, alp2):
     return RHS
 
 
-def full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2):
+def full_syst_stability_determination(N, mu, eps1, alp1, eps2, alp2, x0=0.):
     
     def f_stab_det(initial_vec):
         fundament_matrix = np.zeros((2*N, 2*N))
@@ -183,9 +185,9 @@ def full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
         arr_psi0 = np.array([[0.]*2*N]*2*N)
         for i in range(2*N): arr_psi0[i][i] = 1.
         
-        F_psi = psi_dyn(N, mu, epsilon1, alpha1, epsilon2, alpha2)
+        F_psi = psi_dyn(N, mu, eps1, alp1, eps2, alp2)
         
-        vec_for_int = [0., initial_vec[0], initial_vec[1], initial_vec[2]]
+        vec_for_int = [x0, initial_vec[0], initial_vec[1], initial_vec[2]]
         Vec0 = vec_for_int + arr_psi0.ravel().tolist()
         arr_sol, arr_t = num_integration(F_psi, Vec0, initial_vec[3])
         arr_psi = np.transpose(arr_sol)[-1]
@@ -202,7 +204,7 @@ def full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
         # print(fundament_matrix)
         # print()
         
-        stability_err = 2*1e-3
+        stability_err = 2*1e-6
         if np.all(np.abs([eigvals[1]] + np.abs(eigvals[3:]) < 1)) and np.all(np.abs([eigvals[0], eigvals[2]]) <= 1+stability_err):
             return True, eigvals
         else:
@@ -213,67 +215,150 @@ def full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
     return f_stab_det
 
 
-def draw_start_end(arr_sol, arr_t, _y_name, T, ex_legend=[]):
-    draw_graph([arr_t], arr_sol,
-               [(0, 100), (-np.pi-0.5, np.pi+0.5)],
-               x_name='t', y_name=_y_name,
-               colors=['black'], legend=ex_legend)
-
-    draw_graph([arr_t], arr_sol,
-               [(T-150, T), (-np.pi-0.5, np.pi+0.5)],
-               x_name='t', y_name=_y_name,
-               colors=['black'], legend=ex_legend)
-
-
-def draw_examples_with_theta1(arr_sol, arr_t, N, T):
-    arr_theta_1 = [np.mod(arr_sol[0], 2*np.pi) - np.pi]
-    arr_d_theta_1 = [arr_sol[1]]
-    arr_theta_x = [np.mod(arr_sol[i], 2*np.pi) - np.pi for i in range(2, N+1, 2)]
-    arr_d_theta_x = [arr_sol[i] for i in range(3, N+2, 2)]
-    arr_theta_y = [np.mod(arr_sol[i], 2*np.pi) - np.pi for i in range(N+1, 2*N, 2)]
-    arr_d_theta_y = [arr_sol[i] for i in range(N+2, 2*N, 2)]
+def integrate_full_syst(N, mu, eps1, alp1, eps2, alp2, init_xy_vec, T, noise=False):
+    k = (N-1)//2
+    init_vec = np.array([0, 0] +
+                        [init_xy_vec[0], init_xy_vec[1]]*k + 
+                        [init_xy_vec[2], init_xy_vec[3]]*k)
     
-    # draw graph for theta_x by T
-    draw_start_end(np.mod(arr_theta_1+arr_theta_x, 2*np.pi) - np.pi,
-                   arr_t, r'$\theta_x$', T, ex_legend=[r'$\theta_1$'])
+    if noise: init_vec = init_vec + np.random.uniform(0, 1, 2*N)
+    
+    # Integration
+    rhs = create_full_syst_func(N, mu, eps1, alp1, eps2, alp2)
+    arr_sol, arr_t = num_integration(rhs, init_vec, T)
+    
+    return arr_sol, arr_t
 
-    # draw graph for theta_y by T
-    draw_start_end(np.mod(arr_theta_1+arr_theta_y, 2*np.pi) - np.pi,
-                   arr_t, r'$\theta_y$', T, ex_legend=[r'$\theta_1$'])
+
+def draw_full_syst(arr_sol, arr_t, T, start=True, end=True, T_inter=200, relative0=True):
+    arr_sol, arr_t = np.array(arr_sol), np.array(arr_t)
     
-    # draw graph for d_theta_x by T
-    draw_start_end(arr_d_theta_1+arr_d_theta_x, arr_t, r'$\dot{\theta}_x$', 
-                  T, ex_legend=[r'$\dot{\theta}_1$'])
     
-    # draw graph for d_theta_y by T
-    draw_start_end(arr_d_theta_1+arr_d_theta_y, arr_t, r'$\dot{\theta}_y$', 
-                  T, ex_legend=[r'$\dot{\theta}_1$'])
+    # Result arrays
+    if relative0:
+        arr_thetas = np.array([arr_sol[i] for i in range(2, 2*N, 2)]) - arr_sol[0]
+        arr_d_thetas = np.array([arr_sol[i] for i in range(3, 2*N, 2)]) - arr_sol[1]
+    else:
+        arr_thetas = np.array([arr_sol[i] for i in range(0, 2*N, 2)])
+        arr_d_thetas = np.array([arr_sol[i] for i in range(1, 2*N, 2)])
+    
+    
+    # Drawing
+    # draw graph for thetas by T
+    draw_start_end(mod_2pi(arr_thetas), arr_t, r'$\theta_k$', T,
+                    draw_start=start, draw_end=end, T_inter=T_inter)
+    
+    # draw graph for d_thetas by T
+    draw_start_end(arr_d_thetas, arr_t, r'$\dot{\theta}_k$', T,
+                    draw_start=start, draw_end=end, T_inter=T_inter, 
+                    ylims=(np.min(arr_d_thetas)*1.1-0.05, np.max(arr_d_thetas)*1.1+0.05))
+    
+    
+def find_init_rb_state(arr_sol, arr_t):
+    for i in range(len(arr_t)):
+        if arr_t[i] < 100: continue
+        
+        if np.abs(mod_2pi(arr_sol[0][i])) < 1e-2 and np.abs(mod_2pi(arr_sol[2][i])) < 1e-2:
+            print(i)
+            print([0, arr_sol[3][i], np.mod(arr_sol[-2][i] + np.pi, 2*np.pi) - np.pi, arr_sol[-1][i]])
+            break
+        
+
+def find_init_br_state(arr_sol, arr_t):
+    Found = False
+    for i in range(len(arr_t)):
+        if arr_t[i] < 100: continue
+        
+        if not Found and np.abs(mod_2pi(arr_sol[0][i])) < 1e-3:
+            init_state = np.array([mod_2pi(arr_sol[2][i]), arr_sol[3][i], 
+                                   mod_2pi(arr_sol[-2][i]), arr_sol[-1][i]])
+            init_i = i
+            
+            print(init_i)
+            print(init_state.tolist(), '\n')
+            Found = True
+            continue
+        
+        elif Found and i-init_i > 1000 and np.abs(init_state[1] - arr_sol[3][i]) < 1e-3:
+            end_state = np.array([mod_2pi(arr_sol[2][i]), arr_sol[3][i], 
+                                  mod_2pi(arr_sol[-2][i]), arr_sol[-1][i]])
+            print(i)
+            print(end_state.tolist(), '\n')
+            print((i - init_i)/100)
+            break
 
 
 if __name__ == '__main__':
-    # parameters
-    N = 11
+    # Font settings
+    rc_fonts = {
+        'font.size': 20,
+        "text.usetex": True,
+        'mathtext.default': 'regular',
+        'text.latex.preamble': r"\usepackage{bm}",
+        "font.family": "serif",
+        "font.serif": "computer modern roman",
+    }
+    plt.rcParams.update(rc_fonts)
+    
+    
+    # Always parameters
+    directory = 'Syst_without_reduc_results/'
     mu = 1.0
     epsilon1 = 1.0
+    
+    
+    # Changing parameters
+    # N = 11
+    # alpha1 = 1.7
+    # epsilon2 = 0.08
+    # alpha2 = -2.0
+    # initial_xy_vec = np.array([0, -0.05921021, 2.64676814, 0.14678535])
+    # T = 41.02969191
+    
+    # N = 11
+    # alpha1 = 1.6
+    # epsilon2 = 0.1378
+    # alpha2 = 2.123
+    # initial_xy_vec = np.array([0, 0.007466, 2.133077, 0.124330])
+    # periodT = 63.700816
+    
+    N = 11
     alpha1 = 1.7
-    k = (N-1)//2
+    epsilon2 = 0.075
+    alpha2 = 0
+    # initial_xy_vec = np.array([0, -0.05921021, 2.64676814, 0.14678535])
+    initial_xy_vec = np.array([1.9812276696916573, 0.16464216503908244, -1.2098409186762211, 0.09448776865900128])
+    periodT = 28.89
+
     
-    # f_stab_det = full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
-    # isStable, eigv = f_stab_det(initial_vec)
-    # print(f_stab_det(initial_vec))
+    # Stable determination
+    # f_stab = full_syst_stability_determination(N, mu, epsilon1, alpha1, epsilon2, alpha2)
+    # isStable, eigvs = f_stab(np.array([initial_xy_vec[1], initial_xy_vec[2], initial_xy_vec[3], periodT]))
+    # print(isStable, max(eigvs))
     
-    alpha2 = 2.523893
-    epsilon2 = 0.08
-    initial_xy_vec = np.array([0, -0.052839, 2.459533, 0.134690])
-    T = 1000
     
-    initial_vec = np.array([0, 0] + 
-                           [initial_xy_vec[0], initial_xy_vec[1]]*k + 
-                           [initial_xy_vec[2], initial_xy_vec[3]]*k)
-    initial_vec = initial_vec + np.random.uniform(0, 1, 2*N)
+    # Integrate
+    T = 1500
+    isNoise = False
+    try:
+        # 1/0
+        with open(directory + f'results_noise={isNoise}_N={N}_alp1={alpha1:.3f}_eps1={epsilon1:.3f}_alp2={alpha2:.3f}_eps2={epsilon2:.3f}.txt', 'r') as fr:
+            initial_xy_vec, arr_sol, arr_t = json.load(fr)
     
-    rhs = create_full_syst_func(N, mu, epsilon1, alpha1, epsilon2, alpha2)
-    arr_sol, arr_t = num_integration(rhs, initial_vec, T)
+    except:
+        print('New calculating')
+        arr_sol, arr_t = integrate_full_syst(N, mu, epsilon1, alpha1, epsilon2, alpha2, initial_xy_vec, T, noise=isNoise)
+        with open(directory + f'results_noise={isNoise}_N={N}_alp1={alpha1:.3f}_eps1={epsilon1:.3f}_alp2={alpha2:.3f}_eps2={epsilon2:.3f}.txt', 'w') as fw:
+            json.dump([initial_xy_vec.tolist(), arr_sol.tolist(), arr_t.tolist()], fw)
+            
+    draw_full_syst(arr_sol, arr_t, arr_t[-1], T_inter=500, start=True, relative0=True)
     
-    # Drawing
-    draw_examples_with_theta1(arr_sol, arr_t, N, T)
+    # find_init_rb_state(arr_sol, arr_t)
+    find_init_br_state(arr_sol, arr_t)
+    
+    # arr = np.array([-87.97266460914177, -0.29475409343962183, 
+    #                 -75.39903405905316, -0.2925483817605887,
+    #                 -71.14440795778007, -0.1542180828494336])
+    # for i in range(3):
+    #     arr[i] -= arr
+    

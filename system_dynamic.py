@@ -36,48 +36,80 @@ def xy_dyn(N, mu, epsilon1, alpha1, epsilon2, alpha2):
     return RHS
 
 
-# !!!
 def num_integration(rhs, sol0, T):
     sol = solve_ivp(rhs, [0, T], sol0, max_step=0.01)
     # arr_sol, arr_t = np.transpose(sol.y), sol.t
     arr_sol, arr_t = sol.y, sol.t
         
     return arr_sol, arr_t
-# !!!
+
+
+def mod_2pi(arr):
+    return np.mod(np.array(arr) - np.pi, 2*np.pi) - np.pi
 
 
 def draw_graph(X, Y, limits, x_name='', y_name='', visible=1, 
-               colors=[], legend=[], xs=[], ys=[], grid=True):
+               colors=[], legend=[], xs=[], ys=[], grid=True, linewidth=5.0):
+    fig, ax = plt.subplots(figsize=(12, 8))
     
     x_lims, y_lims = limits
-    plt.xlim(x_lims[0], x_lims[1])
-    plt.ylim(y_lims[0], y_lims[1])
+    ax.set_xlim(x_lims[0], x_lims[1])
+    ax.set_ylim(y_lims[0], y_lims[1])
     
     if len(X) == 1:
         for i in range(len(Y)):
             try:
-                plt.plot(X[0], Y[i], colors[i], alpha=visible)
+                ax.plot(X[0], Y[i], colors[i], alpha=visible, linewidth=linewidth)
             except:
-                plt.plot(X[0], Y[i], alpha=visible)
+                ax.plot(X[0], Y[i], alpha=visible, linewidth=linewidth)
                 
     elif len(X) == len(Y):
         for i in range(len(X)):
             try:
-                plt.plot(X[i], Y[i], colors[i], alpha=visible)
+                ax.plot(X[i], Y[i], colors[i], alpha=visible, linewidth=linewidth)
             except:
-                plt.plot(X[i], Y[i], alpha=visible)
+                ax.plot(X[i], Y[i], alpha=visible, linewidth=linewidth)
     
     for x in xs:
-        plt.axvline(x=x, color='black', linestyle='--')
+        ax.axvline(x=x, color='black', linestyle='--')
     for y in ys:
-        plt.axhline(y=y, color='black', linestyle='--')
+        ax.axhline(y=y, color='black', linestyle='--')
     
-    plt.xlabel(x_name, fontsize=10, color='black')
-    plt.ylabel(y_name, fontsize=10, color='black')    
-    plt.legend(legend, loc='upper right')
-    if grid: plt.grid(True)
+    ax.set_xlabel(x_name, color='black')
+    ax.set_ylabel(y_name, color='black')
     
+    if legend:
+        ax.legend(legend, loc='upper right')
+    
+    if grid:
+        ax.grid(True)
+    
+    plt.tight_layout()
     plt.show()
+
+
+def draw_start_end(arr_sol, arr_t, _y_name, T,
+                   ex_legend=[],
+                   draw_start=True, draw_end=True,
+                   T_inter=150, ylims=(-np.pi-0.5, np.pi+0.5)):
+    if T <= T_inter:
+        draw_graph([arr_t], arr_sol,
+                   [(0, T), ylims],
+                   x_name='t', y_name=_y_name,
+                   colors=['black'], legend=ex_legend)
+    
+    else:
+        if draw_start:
+            draw_graph([arr_t], arr_sol,
+                       [(0, T_inter), ylims],
+                       x_name='t', y_name=_y_name,
+                       colors=['black'], legend=ex_legend)
+    
+        if draw_end:
+            draw_graph([arr_t], arr_sol,
+                       [(T-T_inter, T), ylims],
+                       x_name='t', y_name=_y_name,
+                       colors=['black'], legend=ex_legend)
 
 
 if __name__ == '__main__':
