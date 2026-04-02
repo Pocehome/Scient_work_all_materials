@@ -49,12 +49,44 @@ def mod_2pi(arr):
 
 
 def draw_graph(X, Y, limits, x_name='', y_name='', visible=1, 
-               colors=[], legend=[], xs=[], ys=[], grid=True, linewidth=5.0):
-    fig, ax = plt.subplots(figsize=(12, 8))
+               colors=[], legend=[], xs=[], ys=[], grid=False, linewidth=5.0, draw_theta=False, do_y_lims=False):
+    # Figure size
+    fig, ax = plt.subplots(figsize=(12, 10))
     
+    # Limits
     x_lims, y_lims = limits
     ax.set_xlim(x_lims[0], x_lims[1])
-    ax.set_ylim(y_lims[0], y_lims[1])
+    
+    if draw_theta:
+        ax.set_ylim(y_lims[0], y_lims[1])
+        
+        # Tick labels for theta_k
+        y_ticks = [-np.pi, -np.pi/2, 0, np.pi/2, np.pi]
+        y_ticklabels = [r'$-\pi$', r'$-\frac{\pi}{2}$', r'$0$', r'$\frac{\pi}{2}$', r'$\pi$']
+        ax.set_yticks(y_ticks)
+        ax.set_yticklabels(y_ticklabels)
+    # else:
+    #     y_ticks = np.arange(np.ceil(y_lims[0]/0.1)*0.1, y_lims[1], 0.1)
+    #     ax.set_yticks(y_ticks)
+    #     ax.set_ylabel('t', fontsize=30)
+    
+    if do_y_lims:
+        ax.set_ylim(y_lims[0], y_lims[1])
+        
+    
+    # Tick labels for t - every 50
+    x_ticks = np.arange(np.ceil(x_lims[0]/50)*50, x_lims[1]+50, 50)
+    ax.set_xticks(x_ticks)
+    ax.set_xlabel('t', fontsize=30)
+
+    # Tick label's fontsize
+    ax.tick_params(axis='both', which='major', labelsize=30)
+    
+    ax.grid(False)
+        
+    # alp2, eps2 fontsize
+    ax.set_xlabel(x_name, color='black', fontsize=30)
+    ax.set_ylabel(y_name, color='black', fontsize=30)
     
     if len(X) == 1:
         for i in range(len(Y)):
@@ -79,7 +111,7 @@ def draw_graph(X, Y, limits, x_name='', y_name='', visible=1,
     ax.set_ylabel(y_name, color='black')
     
     if legend:
-        ax.legend(legend, loc='upper right')
+        ax.legend(legend, loc='upper right', fontsize=30)
     
     if grid:
         ax.grid(True)
@@ -90,26 +122,37 @@ def draw_graph(X, Y, limits, x_name='', y_name='', visible=1,
 
 def draw_start_end(arr_sol, arr_t, _y_name, T,
                    ex_legend=[],
-                   draw_start=True, draw_end=True,
-                   T_inter=150, ylims=(-np.pi-0.5, np.pi+0.5)):
+                   tspan=False, draw_start=False, draw_end=False,
+                   T_inter=150, y_lims=(-np.pi-0.5, np.pi+0.5),
+                   draw_theta=False, do_y_lims=False):
     if T <= T_inter:
         draw_graph([arr_t], arr_sol,
-                   [(0, T), ylims],
+                   [(0, T), y_lims],
                    x_name='t', y_name=_y_name,
-                   colors=['black'], legend=ex_legend)
+                   colors=['black'], legend=ex_legend,
+                   draw_theta=draw_theta, do_y_lims=do_y_lims)
     
     else:
         if draw_start:
             draw_graph([arr_t], arr_sol,
-                       [(0, T_inter), ylims],
+                       [(0, 0+T_inter), y_lims],
                        x_name='t', y_name=_y_name,
-                       colors=['black'], legend=ex_legend)
+                       colors=['black'], legend=ex_legend,
+                       draw_theta=draw_theta, do_y_lims=do_y_lims)
     
         if draw_end:
             draw_graph([arr_t], arr_sol,
-                       [(T-T_inter, T), ylims],
+                       [(T-T_inter, T), y_lims],
                        x_name='t', y_name=_y_name,
-                       colors=['black'], legend=ex_legend)
+                       colors=['black'], legend=ex_legend,
+                       draw_theta=draw_theta, do_y_lims=do_y_lims)
+            
+        if tspan:
+            draw_graph([arr_t], arr_sol,
+                       [tspan, y_lims],
+                       x_name='t', y_name=_y_name,
+                       colors=['black'], legend=ex_legend,
+                       draw_theta=draw_theta, do_y_lims=do_y_lims)
 
 
 if __name__ == '__main__':
