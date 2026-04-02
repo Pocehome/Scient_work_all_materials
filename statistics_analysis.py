@@ -3,21 +3,21 @@ import json
 import os
 import multiprocessing
 import sys
-from syst_without_reduc import (full_syst_stability_determination, 
-                                create_full_syst_func, num_integration)
+from syst_without_reduc import create_full_syst_func, num_integration
 
-# System settings
-N = 11
-K = (N - 1) // 2
+# --- Настройки системы ---
+N_OSC = 11
+K = (N_OSC - 1) // 2
 MU = 1.0
 EPS1 = 1.0
 ALP1 = 1.7
-T_TOTAL = 3000 
+T_STEP = 1000 
+T_MAX = 5000
 
 def get_random_ic():
-    ic = np.empty(2 * N)
-    ic[0::2] = np.random.uniform(-np.pi, np.pi, N)
-    ic[1::2] = np.random.uniform(-1, 1, N)
+    ic = np.empty(2 * N_OSC)
+    ic[0::2] = np.random.uniform(-np.pi, np.pi, N_OSC)
+    ic[1::2] = np.random.uniform(-1, 1, N_OSC)
     return ic
 
 def classify_regime(arr_sol, arr_t):
@@ -57,29 +57,46 @@ def classify_regime(arr_sol, arr_t):
 
 def worker_task(task_info):
     idx_alp, alp2, sample_idx, eps2, results_dir = task_info
-    rhs = create_full_syst_func(N, MU, EPS1, ALP1, eps2, alp2)
+    rhs = create_full_syst_func(N_OSC, MU, EPS1, ALP1, eps2, alp2)
     
-    try:
-        sol, t = num_integration(rhs, get_random_ic(), T_TOTAL)
-        regime = classify_regime(sol, t)
-        
-        if regime == "Other":
-            debug_dir = os.path.join(results_dir, "Debug_Other")
-            os.makedirs(debug_dir, exist_ok=True)
-            init_v = [sol[2][0], sol[3][0], sol[12][0], sol[13][0]]
-            f_stab = full_syst_stability_determination(N, MU, EPS1, ALP1, eps2, alp2, 0.0)
-            _, eigv = f_stab(init_v)
-            min_l = min(len(s) for s in sol)
-            sol_save = [s[:min_l].tolist() for s in sol]
-            t_save = t[:min_l].tolist()
-            debug_name = f"Other_a2={alp2:.4f}_smp={sample_idx}.txt"
-            with open(os.path.join(debug_dir, debug_name), 'w') as f:
-                json.dump([sol_save, t_save, T_TOTAL, [str(e) for e in eigv]], f)
-        
-        # Теперь возвращаем и значение alp2 для вывода в консоль
-        return idx_alp, alp2, regime
-    except:
-        return idx_alp, alp2, "Other"
+    initial_ic = get_random_ic()
+    current_ic = initial_ic.copy()
+    accumulated_time = 0
+    
+    while accumulated_time < T_MAX:
+        try:
+            sol, t = num_integration(rhs, current_ic, T_STEP)
+            regime = classify_regime(sol, t)
+            
+            is_final_attempt = (accumulated_time + T_STEP) >= T_MAX
+            
+            if regime != "Other" or is_final_attempt:
+                if regime == "Other":
+                    debug_dir = os.path.join(results_dir, "Debug_Other")
+                    os.makedirs(debug_dir, exist_ok=True)
+                    
+                    t_shifted = t + accumulated_time
+                    min_l = min(len(s) for s in sol)
+                    debug_name = f"Other_a2={alp2:.4f}_eps2={eps2:.4f}_seg={accumulated_time}-{accumulated_time+T_STEP}.txt"
+                    
+                    # Сохранение БЕЗ вычисления собственных чисел
+                    with open(os.path.join(debug_dir, debug_name), 'w') as f:
+                        json.dump([
+                            [s[:min_l].tolist() for s in sol], 
+                            t_shifted[:min_l].tolist(), 
+                            float(accumulated_time + T_STEP), 
+                            [], # Собственные числа больше не считаются, пишем пустой список
+                            initial_ic.tolist() 
+                        ], f)
+                
+                return idx_alp, alp2, regime, accumulated_time + T_STEP
+            
+            # Подготовка к следующему шагу (1000 ед. времени)
+            current_ic = np.array([s[-1] for s in sol])
+            accumulated_time += T_STEP
+            
+        except Exception:
+            return idx_alp, alp2, "Other", accumulated_time + T_STEP
 
 class StatisticsManager:
     def __init__(self, eps2, n_points, n_samples):
@@ -90,7 +107,7 @@ class StatisticsManager:
         self.results_dir = "StatisticResults"
         os.makedirs(self.results_dir, exist_ok=True)
         self.filepath = os.path.join(self.results_dir, f"stats_eps2_{eps2:.4f}_pts_{n_points}_smp_{n_samples}.json")
-        self.data = {"metadata": {"eps2": eps2, "n_points": n_points, "target_samples": n_samples, "T": T_TOTAL},
+        self.data = {"metadata": {"eps2": eps2, "n_points": n_points, "target_samples": n_samples, "T_step": T_STEP, "T_max": T_MAX},
                      "raw_results": [[] for _ in range(n_points)]}
         self.load_existing()
 
@@ -100,8 +117,7 @@ class StatisticsManager:
                 loaded = json.load(f)
                 if len(loaded["raw_results"]) == self.n_points:
                     self.data["raw_results"] = loaded["raw_results"]
-                    done = sum(len(r) for r in self.data["raw_results"])
-                    print(f"Файл найден. Загружено: {done} результатов.")
+                    print(f"Загружено: {sum(len(r) for r in self.data['raw_results'])} результатов.")
 
     def save(self):
         temp = self.filepath + ".tmp"
@@ -116,39 +132,32 @@ class StatisticsManager:
                 tasks.append((i, alp2, s_idx, self.eps2, self.results_dir))
 
         if not tasks:
-            print("Все задачи уже выполнены.")
+            print("Все задачи выполнены.")
             return
 
         total_tasks = len(tasks)
-        print(f"Запуск: {multiprocessing.cpu_count()} ядер, {total_tasks} симуляций (T={T_TOTAL}).")
+        print(f"Запуск: {multiprocessing.cpu_count()} ядер. Режим: Адаптивное T (без СЧ для Other).")
 
         pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-        
         try:
             for i, result in enumerate(pool.imap_unordered(worker_task, tasks)):
-                idx_alp, alp2_val, regime = result
+                idx_alp, alp2_val, regime, t_reached = result
                 self.data["raw_results"][idx_alp].append(regime)
                 
-                # КРАСИВЫЙ ВЫВОД ПРОГРЕССА
                 percent = (i + 1) / total_tasks * 100
-                # \r возвращает курсор в начало строки, а ' ' * 5 очищает возможные остатки старого текста
-                sys.stdout.write(f"\rПрогресс: {percent:.1f}% | Посчитано: {i+1}/{total_tasks} | Текущая alpha2: {alp2_val:7.4f} | Режим: {regime:13}")
+                sys.stdout.write(f"\rПрогресс: {percent:.1f}% | {i+1}/{total_tasks} | a2: {alp2_val:7.4f} | T: {t_reached} | Режим: {regime:13}")
                 sys.stdout.flush()
                 
-                if (i + 1) % 10 == 0:
-                    self.save()
-            
+                if (i + 1) % 10 == 0: self.save()
             self.save()
-            print(f"\nРасчет успешно завершен. Результаты в {self.filepath}")
-            
+            print(f"\nГотово. Результаты в {self.filepath}")
         except KeyboardInterrupt:
-            print("\n\nРасчет прерван пользователем. Сохранение прогресса...")
+            print("\nПрервано пользователем.")
             pool.terminate()
         finally:
             pool.close()
             pool.join()
 
-
 if __name__ == "__main__":
-    manager = StatisticsManager(eps2=0.01, n_points=20, n_samples=10)
+    manager = StatisticsManager(eps2=0.01, n_points=50, n_samples=20)
     manager.run()
